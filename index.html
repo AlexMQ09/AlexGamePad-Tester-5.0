@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>AleGamePad Tester - Pro Diagnostic</title>
+    <style>
+        :root {
+            --bg: #0b0d0f;
+            --shell: #1d2023;
+            --accent-gray: #e0e6ed;
+            --border: #353a3f;
+            --text: #8e969f;
+            /* Colores de diagnóstico */
+            --perfect: #00ff88; 
+            --error: #ff4444;
+        }
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', sans-serif;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            overflow: hidden;
+            touch-action: none;
+        }
+
+        /* PANEL FLOTANTE MOVIBLE */
+        #controls-floating {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            background: rgba(35, 38, 41, 0.95);
+            padding: 12px 18px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            font-size: 13px;
+            cursor: move;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+            min-width: 160px;
+        }
+        .drag-handle { width: 100%; height: 8px; background: #444; border-radius: 4px; margin-bottom: 5px; }
+
+        #main-container { display: flex; align-items: center; gap: 30px; transition: transform 0.3s ease; }
+        .vertical-mode { flex-direction: column !important; transform: scale(0.75); }
+        .horizontal-mode { flex-direction: row !important; transform: scale(0.9); }
+
+        /* Gatillos */
+        .trigger-set { display: flex; gap: 15px; }
+        .t-box { display: flex; flex-direction: column; align-items: center; gap: 5px; }
+        .btn-l1r1 { width: 75px; height: 35px; background: #151515; border: 1px solid var(--border); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: bold; }
+        .btn-l2r2 { width: 75px; height: 55px; background: #151515; border: 1px solid var(--border); border-radius: 8px 8px 25px 25px; position: relative; overflow: hidden; }
+        .fill { position: absolute; bottom: 0; width: 100%; background: linear-gradient(to top, #555, #aaa); height: 0%; transition: height 0.05s linear; }
+
+        /* Chasis */
+        .chassis {
+            position: relative;
+            width: 550px;
+            height: 330px;
+            background: var(--shell);
+            border-radius: 80px 80px 160px 160px;
+            border: 1px solid var(--border);
+        }
+
+        .touchpad { position: absolute; top: 20px; left: 155px; width: 240px; height: 110px; background: #121417; border-radius: 12px; border: 1px solid #2a2e33; }
+        .small-btn { position: absolute; top: 40px; width: 12px; height: 30px; background: #121417; border: 1px solid var(--border); border-radius: 5px; font-size: 8px; writing-mode: vertical-rl; text-align: center; }
+        #b-8 { left: 135px; } 
+        #b-9 { right: 135px; } 
+
+        .btn-round { position: absolute; width: 42px; height: 42px; background: #121417; border: 1px solid var(--border); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 18px; color: var(--text); }
+        .active { background: var(--accent-gray) !important; color: #000 !important; border-color: #fff !important; box-shadow: 0 0 15px rgba(255, 255, 255, 0.4); }
+
+        /* Grupos de botones */
+        .group { position: absolute; top: 90px; width: 130px; height: 130px; }
+        .dpad { left: 35px; }
+        .actions { right: 35px; }
+        .up { top: 0; left: 45px; } .down { bottom: 0; left: 45px; } .left { top: 45px; left: 0; } .right { top: 45px; right: 0; }
+
+        /* Joysticks */
+        .joy-unit {
+            position: absolute;
+            bottom: 30px;
+            width: 125px;
+            height: 125px;
+            background: #050505;
+            border-radius: 50%;
+            border: 1.5px solid var(--border);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        #j-l { left: 110px; } 
+        #j-r { right: 110px; } 
+        .l3r3-glow { border-color: #fff !important; box-shadow: 0 0 20px rgba(255, 255, 255, 0.2); }
+
+        canvas { border-radius: 50%; }
+        #b-16 { position: absolute; bottom: 75px; left: 257px; width: 36px; height: 36px; font-size: 11px; background: #15171a; border: 1.5px solid var(--border); border-radius: 50%; z-index: 10; }
+
+        .tool-btn { background: #2a2e33; border: 1px solid #444; color: white; padding: 5px; border-radius: 6px; cursor: pointer; font-size: 11px; }
+    </style>
+</head>
+<body>
+
+    <div id="controls-floating">
+        <div class="drag-handle"></div>
+        <b style="color: white; border-bottom: 1px solid #444; padding-bottom: 5px; margin-bottom: 5px;">AleGamePad Tester</b>
+        <label><input type="checkbox" id="chkError" checked> Ver Error (Color)</label>
+        <button class="tool-btn" id="btnRotate">Rotar Vista</button>
+        <button class="tool-btn" onclick="resetMaps()">Limpiar Rastro</button>
+    </div>
+
+    <div id="main-container" class="vertical-mode">
+        <div class="trigger-set">
+            <div class="t-box"><div id="b-4" class="btn-l1r1">L1</div><div class="btn-l2r2"><div id="f-6" class="fill"></div></div></div>
+            <div class="t-box"><div id="b-5" class="btn-l1r1">R1</div><div class="btn-l2r2"><div id="f-7" class="fill"></div></div></div>
+        </div>
+
+        <div class="chassis" id="gui" style="display:none">
+            <div class="touchpad" id="b-17"></div>
+            <div id="b-8" class="small-btn">SHR</div>
+            <div id="b-9" class="small-btn">OPT</div>
+
+            <div class="group dpad">
+                <div id="b-12" class="btn-round up">↑</div>
+                <div id="b-13" class="btn-round down">↓</div>
+                <div id="b-14" class="btn-round left">←</div>
+                <div id="b-15" class="btn-round right">→</div>
+            </div>
+
+            <div class="group actions">
+                <div id="b-3" class="btn-round up">△</div>
+                <div id="b-1" class="btn-round right">○</div>
+                <div id="b-0" class="btn-round down">✕</div>
+                <div id="b-2" class="btn-round left">□</div>
+            </div>
+
+            <div id="b-16" class="btn-round">PS</div>
+
+            <div id="j-l" class="joy-unit"><canvas id="cL" width="125" height="125"></canvas></div>
+            <div id="j-r" class="joy-unit"><canvas id="cR" width="125" height="125"></canvas></div>
+        </div>
+    </div>
+
+    <script>
+        let gpIdx = null;
+        let mapL = {}, mapR = {};
+        const container = document.getElementById("main-container");
+
+        const dragPanel = document.getElementById("controls-floating");
+        let isDragging = false;
+        let offset = { x: 0, y: 0 };
+
+        dragPanel.addEventListener('touchstart', (e) => {
+            isDragging = true;
+            offset.x = e.touches[0].clientX - dragPanel.offsetLeft;
+            offset.y = e.touches[0].clientY - dragPanel.offsetTop;
+        });
+
+        document.addEventListener('touchmove', (e) => {
+            if (!isDragging) return;
+            dragPanel.style.left = (e.touches[0].clientX - offset.x) + 'px';
+            dragPanel.style.top = (e.touches[0].clientY - offset.y) + 'px';
+        });
+
+        document.addEventListener('touchend', () => isDragging = false);
+
+        document.getElementById("btnRotate").onclick = () => {
+            container.classList.toggle("vertical-mode");
+            container.classList.toggle("horizontal-mode");
+        };
+
+        window.addEventListener("gamepadconnected", (e) => {
+            gpIdx = e.gamepad.index;
+            document.getElementById("gui").style.display = "block";
+            update();
+        });
+
+        function resetMaps() { mapL = {}; mapR = {}; }
+
+        function drawJoy(canvasId, x, y, mapData) {
+            const canvas = document.getElementById(canvasId);
+            const ctx = canvas.getContext("2d");
+            const showStats = document.getElementById("chkError").checked;
+            const cx = 62.5, cy = 62.5, r = 52;
+
+            if (showStats && Math.hypot(x, y) > 0.4) {
+                let angle = Math.atan2(y, x).toFixed(2);
+                mapData[angle] = Math.hypot(x, y);
+            }
+
+            ctx.clearRect(0,0,125,125);
+            if (showStats) {
+                for (let a in mapData) {
+                    let d = mapData[a];
+                    ctx.beginPath();
+                    // RESTAURADO: Verde para correcto, Rojo para error
+                    ctx.strokeStyle = Math.abs(1-d) < 0.1 ? "#00ff88" : "#ff4444";
+                    ctx.lineWidth = 3;
+                    ctx.arc(cx, cy, r, parseFloat(a), parseFloat(a) + 0.1);
+                    ctx.stroke();
+                }
+            }
+            ctx.beginPath();
+            ctx.arc(cx + (x * r), cy + (y * r), 4, 0, Math.PI*2);
+            ctx.fillStyle = "#ffffff";
+            ctx.fill();
+        }
+
+        function update() {
+            const gp = navigator.getGamepads()[gpIdx];
+            if(!gp) return;
+
+            gp.buttons.forEach((b, i) => {
+                const el = document.getElementById("b-" + i);
+                if(el) b.pressed ? el.classList.add("active") : el.classList.remove("active");
+            });
+
+            gp.buttons[10].pressed ? document.getElementById("j-l").classList.add("l3r3-glow") : document.getElementById("j-l").classList.remove("l3r3-glow");
+            gp.buttons[11].pressed ? document.getElementById("j-r").classList.add("l3r3-glow") : document.getElementById("j-r").classList.remove("l3r3-glow");
+
+            document.getElementById("f-6").style.height = (gp.buttons[6].value * 100) + "%";
+            document.getElementById("f-7").style.height = (gp.buttons[7].value * 100) + "%";
+
+            drawJoy("cL", gp.axes[0], gp.axes[1], mapL);
+            drawJoy("cR", gp.axes[2], gp.axes[3], mapR);
+
+            requestAnimationFrame(update);
+        }
+    </script>
+</body>
+</html>
