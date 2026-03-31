@@ -5,18 +5,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Source Code
-        uses: actions/checkout@v4 # Actualizado a v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: Build Android APK
-        uses: unaty/html-to-apk-action@v1.1 # Asegúrate de que esta versión sea la correcta
+      - name: Build APK with Bubblewrap
+        uses: Nico04/bubblewrap-action@v1
         with:
-          app-name: "AleGamePad Tester"
-          # Si no tienes un icono llamado icon.png, elimina la línea de abajo
-          # icon: "icon.png" 
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4 # Actualizado a v4
-        with:
-          name: gamepad-tester-apk
-          path: ./*.apk
+          url: 'https://tu-usuario.github.io/tu-repo/' # Aquí necesitas tener activado GitHub Pages
+          appName: 'AleGamePad Tester'
