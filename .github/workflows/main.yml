@@ -1,30 +1,22 @@
 name: Build APK
 on: [push]
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Code
-        uses: actions/checkout@v4
+      - name: Checkout Source Code
+        uses: actions/checkout@v4 # Actualizado a v4
 
-      - name: set up JDK 17
-        uses: actions/setup-java@v4
+      - name: Build Android APK
+        uses: unaty/html-to-apk-action@v1.1 # Asegúrate de que esta versión sea la correcta
         with:
-          java-version: '17'
-          distribution: 'temurin'
+          app-name: "AleGamePad Tester"
+          # Si no tienes un icono llamado icon.png, elimina la línea de abajo
+          # icon: "icon.png" 
 
-      - name: Install Bubblewrap
-        run: npm install -g @bubblewrap/cli
-
-      - name: Build APK
-        run: |
-          # Esto automatiza la creación de la APK
-          yes | bubblewrap init --manifest=https://raw.githubusercontent.com/${{ github.repository }}/main/manifest.json || true
-          bubblewrap build --skip-signing
-          
       - name: Upload APK
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4 # Actualizado a v4
         with:
-          name: AleGamePad-APK
+          name: gamepad-tester-apk
           path: ./*.apk
-
